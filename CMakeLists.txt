@@ -303,6 +303,14 @@ file(WRITE "${PROJECT_BINARY_DIR}/include/hip/hip_version.h" ${_versionInfoHeade
 
 if(HIP_RUNTIME STREQUAL "rocclr")
 	add_subdirectory(src)
+elseif (HIP_RUNTIME STREQUAL "cuda")
+    find_package(CUDAToolkit REQUIRED)
+    add_library(host INTERFACE)
+    target_link_libraries(host INTERFACE CUDA::cuda_driver CUDA::nvrtc CUDA::cudart)
+    add_library(device INTERFACE)
+    target_link_libraries(device INTERFACE host)
+    install(TARGETS host device EXPORT hip-targets)
+    install(EXPORT hip-targets DESTINATION ${CONFIG_PACKAGE_INSTALL_DIR} NAMESPACE hip::)
 endif()
 
 # Generate .hipInfo
