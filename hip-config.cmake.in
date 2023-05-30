@@ -162,24 +162,36 @@ if(HIP_COMPILER STREQUAL "clang")
   set(GPU_TARGETS "${AMDGPU_TARGETS}" CACHE STRING "GPU targets to compile for")
 endif() # HIP_COMPILER check
 
-if(NOT WIN32)
-  find_dependency(amd_comgr)
-endif()
-
-include( "${CMAKE_CURRENT_LIST_DIR}/hip-targets.cmake" )
-
 #Using find_dependency to locate the dependency for the packages
 #This makes the cmake generated file xxxx-targets to supply the linker libraries
 # without worrying other transitive dependencies
-if(NOT WIN32)
+if(HIP_RUNTIME MATCHES "cuda")
+  find_dependency(CUDAToolkit)
+elseif(NOT WIN32)
+  find_dependency(amd_comgr)
   find_dependency(hsa-runtime64)
+endif()
+
+if(NOT WIN32)
   find_dependency(Threads)
 endif()
 
 set(_IMPORT_PREFIX ${HIP_PACKAGE_PREFIX_DIR})
-# Right now this is only supported for amd platforms
+
+if(HIP_RUNTIME MATCHES "cuda")
+  set_target_properties(hip::host PROPERTIES
+    INTERFACE_COMPILE_DEFINITIONS "__HIP_PLATFORM_NVIDIA__=1"
+  )
+else()
+  # Right now this is only supported for amd platforms
+  set_target_properties(hip::host PROPERTIES
+    INTERFACE_COMPILE_DEFINITIONS "__HIP_PLATFORM_HCC__=1;__HIP_PLATFORM_AMD__=1"
+  )
+endif()
+
 set_target_properties(hip::host PROPERTIES
-  INTERFACE_COMPILE_DEFINITIONS "__HIP_PLATFORM_HCC__=1;__HIP_PLATFORM_AMD__=1"
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
+  INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
 )
 
 if(HIP_RUNTIME MATCHES "rocclr")
